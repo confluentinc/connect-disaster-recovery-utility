@@ -1,0 +1,12 @@
+# Runtime dependencies for connect_dr.py
+#
+# Everything else the script uses (argparse, csv, json, os, sys, time,
+# concurrent.futures, dataclasses, datetime, typing, urllib.parse) ships with
+# the Python standard library.
+#
+# Requires Python 3.7+ for `from __future__ import annotations` and dataclasses.
+
+# HTTP client used for all Confluent Cloud API calls, plus HTTPBasicAuth for
+# API key/secret authentication. Floor is 2.31.0, which patched CVE-2023-32681
+# (Proxy-Authorization leaked on cross-origin redirects).
+requests>=2.31.0
