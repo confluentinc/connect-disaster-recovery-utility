@@ -6,8 +6,4 @@ git:
 codeowners:
   enable: true
 renovatebot:
-  enable: true
-  automerge:
-    enable: true
-semaphore:
   enable: false
