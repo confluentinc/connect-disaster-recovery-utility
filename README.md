@@ -58,8 +58,3 @@ printed to stdout at the end. Every run also writes
 `dr_<action>_<UTC-timestamp>.csv` to the current working directory, flushed row
 by row so an interrupted run still leaves completed results on disk. The path is
 shown in the confirmation prompt.
-
-## Contributing
-
-Contributions are welcome. See [LICENSE](LICENSE) for contribution terms and
-[CHANGELOG.md](CHANGELOG.md) for recent updates.

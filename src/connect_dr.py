@@ -1229,7 +1229,7 @@ def print_status_summary(s: StatusRunSummary) -> None:
             print(f"      duration_seconds:  {o.duration_seconds:.2f}")
 
 
-# Column orderings for --output-result CSV. Defined as module-level constants so
+# Column orderings for output CSV. Defined as module-level constants so
 # the help text, write helpers, and any downstream consumer agree on the schema.
 _OUTCOME_CSV_COLUMNS: List[str] = [
     "name",
@@ -1275,7 +1275,7 @@ def _csv_cell(value: Any) -> str:
 def _open_streaming_csv(
         path: Optional[str], columns: List[str]
 ) -> tuple:
-    """Open the --output-result CSV for streaming writes and emit the header.
+    """Open the result CSV for streaming writes and emit the header.
 
     Returns (writer, file_handle) when `path` is set, else (None, None). The
     file is opened in "w" mode up-front so a bad path fails before any DR
@@ -1290,7 +1290,7 @@ def _open_streaming_csv(
         # it, csv.writer emits a stray \r on Windows.
         handle = open(path, "w", encoding="utf-8", newline="")
     except OSError as e:
-        raise CLIError(f"--output-result: cannot write {path}: {e}") from e
+        raise CLIError(f"results csv: cannot write {path}: {e}") from e
     writer = csv.writer(handle)
     writer.writerow(columns)
     handle.flush()
@@ -1303,7 +1303,7 @@ def _stream_csv_row(
 ) -> None:
     """Write one row for `outcome` to the streaming CSV and flush to disk.
 
-    No-op when `writer` is None (i.e. --output-result wasn't passed). Flush
+    No-op when `writer` is None (i.e. no CSV was opened). Flush
     after every row so partial results survive a mid-run crash, Ctrl-C, or
     a parent process kill.
     """
@@ -1321,9 +1321,12 @@ def _stream_csv_row(
 def confirm_parameters(args: argparse.Namespace) -> bool:
     """Show the parsed parameters and ask the user to confirm before running.
 
-    Returns True only when the user types `y` / `yes` (case-insensitive).
-    Any other answer, an empty answer, or EOF returns False — the script
-    has no bypass flag, so confirmation is always required.
+    Returns True only when the answer read from stdin is `y` / `yes`
+    (case-insensitive). Any other answer, an empty answer, or EOF returns
+    False.
+
+    Note that stdin is not required to be a TTY: piping an
+    answer in (`echo y | connect_dr.py ...`) does confirm the run.
 
     The API key is shown so the user can verify they're authenticating with
     the right credential; the secret is never printed — only a placeholder.
@@ -1354,8 +1357,9 @@ def confirm_parameters(args: argparse.Namespace) -> bool:
     try:
         answer = input(f"Proceed with {args.action}? [y/N]: ").strip().lower()
     except EOFError:
-        # Non-interactive stdin (e.g. piped, redirected) — treat as "No"
-        # rather than hanging or proceeding silently.
+        # stdin is closed or empty (e.g. `< /dev/null`, a closed pipe) — treat
+        # as "No" rather than hanging or proceeding silently. A pipe that
+        # carries an actual answer does not land here; it is read normally.
         print("(no input; aborting)", file=sys.stderr)
         return False
     return answer in ("y", "yes")
@@ -1393,7 +1397,7 @@ def main() -> int:
         if args.action == "status":
             status_summary = run_status(args)
             print_status_summary(status_summary)
-            # --output-result CSV is streamed inside run_status() as connectors
+            # The results CSV is streamed inside run_status() as connectors
             # complete; nothing to do here.
             # Read-only command — exit non-zero only if any per-connector status
             # query errored. Connectors with NO_DR_STATE are not failures.
@@ -1401,7 +1405,7 @@ def main() -> int:
 
         summary = run(args)
         print_summary(summary)
-        # --output-result CSV is streamed inside run() as connectors complete.
+        # The results CSV is streamed inside run() as connectors complete.
 
         # Exit non-zero if any connector failed so this command is safe to chain
         # into automation (e.g. a runbook that aborts on first failure).
